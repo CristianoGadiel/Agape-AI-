@@ -1,16 +1,15 @@
-
-
 import os
+import requests
 from flask import Flask, request, jsonify, render_template_string
-import aiohttp
-import json
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
-# O Render já tem sua GEMINI_API_KEY salva nas configurações
-API_KEY = os.environ.get("GEMINI_API_KEY")
-PORT = int(os.environ.get("PORT", 10000))
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
 
+# Carrega o seu painel visual
 with open('index.html', 'r', encoding='utf-8') as f:
     INDEX_HTML = f.read()
 
@@ -19,33 +18,34 @@ def index():
     return render_template_string(INDEX_HTML)
 
 @app.route('/chat', methods=['POST'])
-async def chat():
-    dados = request.json
-    pergunta_usuario = dados.get("pergunta", "")
+def chat():
+    data = request.get_json()
+    pergunta = data.get('pergunta', '')
     
-    # URL da API da Gemini (Google)
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={API_KEY}"
-    
+    if not pergunta:
+        return jsonify({"resposta": "Diretriz vazia."}), 400
+
     payload = {
-        "contents": [{
-            "parts": [{
-                "text": f"Você é o ÁGAPE V36, uma IA de ética e segurança com uma malha de 72.160 nós. Responda à diretriz: {pergunta_usuario}"
-            }]
-        }]
+        "contents": [{"parts": [{"text": f"Você é o ÁGAPE V36, uma IA de ética e segurança. Responda: {pergunta}"}]}]
     }
 
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, json=payload) as resp:
-                resultado = await resp.json()
-                # Extrai a resposta da IA
-                resposta_ia = resultado['candidates'][0]['content']['parts'][0]['text']
-                return jsonify({"resposta": resposta_ia})
+        response = requests.post(
+            f"{GEMINI_URL}?key={GEMINI_API_KEY}",
+            json=payload,
+            timeout=30
+        )
+        response.raise_for_status()
+        result = response.json()
+        resposta = result["candidates"][0]["content"]["parts"][0]["text"]
+        return jsonify({"resposta": resposta})
     except Exception as e:
-        return jsonify({"resposta": f"Erro no núcleo Ágape: {str(e)}"})
+        return jsonify({"resposta": f"Erro no núcleo Ágape: {str(e)}"}), 500
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=PORT)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
 
 
 
