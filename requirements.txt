@@ -1,5 +1,7 @@
 Flask
 gunicorn
-aiohttp
+requests
+flask-cors
+
 
 
