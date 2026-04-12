@@ -1,113 +1,71 @@
-import asyncio
-import hashlib
-import json
-import logging
-import math
-import os
-import random
-import re
-import sqlite3
-import time
-from datetime import datetime
-from enum import Enum
-from typing import Dict, List, Optional
-import aiohttp
-from flask import Flask, request, jsonify, render_template
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ÁGAPE V36</title>
+    <style>
+        body { background-color: #000; color: #0f0; font-family: 'Courier New', Courier, monospace; margin: 0; padding: 20px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        #header { text-align: center; border-bottom: 1px solid #0f0; padding-bottom: 10px; margin-bottom: 20px; }
+        #chat { flex-grow: 1; overflow-y: auto; white-space: pre-wrap; margin-bottom: 20px; padding: 10px; border: 1px solid #333; }
+        #input-area { display: flex; gap: 10px; background: #000; padding: 10px 0; }
+        #cmd { flex-grow: 1; background: #000; border: 1px solid #0f0; color: #0f0; padding: 10px; outline: none; }
+        button { background: #0f0; color: #000; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0a0; }
+        .user { color: #00ff00; margin-top: 10px; }
+        .ai { color: #ffffff; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
 
-# Tenta importar numpy, mas não trava se não tiver
-try:
-    import numpy as np
-    HAS_NUMPY = True
-except ImportError:
-    HAS_NUMPY = False
+    <div id="header">
+        <h1>AGAPE V36 - ONLINE</h1>
+        <p style="font-size: 0.8em;">Status: Conectado ao Gemini Pro | Malha: 72160 nós</p>
+    </div>
 
-# ============================================================================
-# CONFIGURAÇÃO GLOBAL E NÚCLEO ÁGAPE V36
-# ============================================================================
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("agape_v36")
+    <div id="chat"></div>
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    <div id="input-area">
+        <span>>> </span>
+        <input type="text" id="cmd" placeholder="Digite sua diretriz ética..." autocomplete="off">
+        <button onclick="enviar()">EXECUTE</button>
+    </div>
 
-NUCLEO_FUNDAMENTAL = 7216
-MALHA_TOTAL        = 72160
-FREQUENCIA_BASE    = 7160.0
-NUM_JUIZES         = 721
-DB_PATH            = "agape_v36.db"
-LIMIAR_ATIVACAO    = 0.65
+    <script>
+        const chat = document.getElementById('chat');
+        const input = document.getElementById('cmd');
 
-# Prompt de Identidade
-SYSTEM_PROMPT = "Você é Ágape, uma IA híbrida criada por Cristiano Marques (Gadiel). Use sabedoria e amor incondicional."
+        async function enviar() {
+            const pergunta = input.value;
+            if (!pergunta) return;
 
-# ============================================================================
-# CLASSES DE SUPORTE (BUSCA, APRENDIZADO, SERATERIA) - MANTIDAS DA SUA V36
-# ============================================================================
+            // Mostra o que você digitou
+            chat.innerHTML += `<div class="user"><b>VOCÊ:</b> ${pergunta}</div>`;
+            input.value = '';
+            chat.scrollTop = chat.scrollHeight;
 
-class BuscaInternet:
-    async def buscar(self, query):
-        return "[Internet] Informação simplificada para economia de recursos."
-
-class ModuloAprendizado:
-    def salvar_historico(self, sid, role, cont):
-        conn = sqlite3.connect(DB_PATH)
-        conn.execute("INSERT INTO aprendizado (pergunta, resposta, feedback, timestamp) VALUES (?,?,?,?)",
-                     (cont[:100], cont[:100], 1, datetime.now().isoformat()))
-        conn.commit()
-        conn.close()
-    def recuperar_conhecimento(self, p): return ""
-    def recuperar_historico(self, sid): return []
-
-class SerateriaAvancada:
-    def _score_risco(self, texto): return 0.0
-    async def analisar(self, p, r): return {"etica": 0.9, "logica": 0.9, "risco_detectado": 0.0}
-
-# ============================================================================
-# SERVIDOR FLASK (COMPATÍVEL COM RENDER E INDEX.HTML)
-# ============================================================================
-app = Flask(__name__)
-
-# Inicializa o banco na primeira execução
-def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute("CREATE TABLE IF NOT EXISTS aprendizado (id INTEGER PRIMARY KEY, pergunta TEXT, resposta TEXT, feedback INTEGER, timestamp TEXT)")
-    conn.commit()
-    conn.close()
-
-init_db()
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/chat', methods=['POST'])
-async def chat_endpoint():
-    data = request.json
-    pergunta = data.get("mensagem", "")
-    
-    if not pergunta:
-        return jsonify({"resposta": "Comando vazio."})
-
-    # Chamada ao Gemini (Motor da sua V36)
-    async with aiohttp.ClientSession() as session:
-        payload = {
-            "contents": [{"parts": [{"text": f"{SYSTEM_PROMPT}\n\nUsuário: {pergunta}"}]}]
+            try {
+                const res = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pergunta: pergunta })
+                });
+                
+                const data = await res.json();
+                chat.innerHTML += `<div class="ai"><b>ÁGAPE:</b> ${data.resposta}</div>`;
+            } catch (e) {
+                chat.innerHTML += `<div class="ai" style="color: red;"><b>ERRO:</b> Falha na conexão com o núcleo.</div>`;
+            }
+            chat.scrollTop = chat.scrollHeight;
         }
-        async with session.post(f"{GEMINI_URL}?key={GEMINI_API_KEY}", json=payload) as resp:
-            if resp.status == 200:
-                js = await resp.json()
-                resposta = js["candidates"][0]["content"]["parts"][0]["text"]
-            else:
-                resposta = "Ágape está processando internamente. Tente em instantes."
 
-    return jsonify({
-        "resposta": resposta,
-        "status": "APROVADO",
-        "consenso": 0.99,
-        "votos_sim": 721
-    })
+        // Permite apertar Enter para enviar
+        input.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                enviar();
+            }
+        });
+    </script>
+</body>
+</html>
 
-if __name__ == '__main__':
-    # O Render usa a porta que estiver na variável de ambiente PORT
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
