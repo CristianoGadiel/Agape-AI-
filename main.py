@@ -7,10 +7,11 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-# Chave e URL atualizada para evitar o erro 404
+# Configurações do Google Gemini 2026
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent"
+URL_BASE = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
+# Carrega o seu index.html (certifique-se que o arquivo existe no GitHub)
 with open('index.html', 'r', encoding='utf-8') as f:
     INDEX_HTML = f.read()
 
@@ -24,23 +25,27 @@ def chat():
     pergunta = data.get('pergunta', '')
     
     if not pergunta:
-        return jsonify({"resposta": "Diretriz vazia."}), 400
+        return jsonify({"resposta": "Diretriz ética não identificada."}), 400
 
     payload = {
-        "contents": [{"parts": [{"text": f"Você é o ÁGAPE V36, uma IA de ética e segurança com malha de 72.160 nós. Responda: {pergunta}"}]}]
+        "contents": [{
+            "parts": [{"text": f"Você é o ÁGAPE V36. Malha: 72.160 nós. Diretriz: {pergunta}"}]
+        }]
     }
 
     try:
-        # A requisição agora aponta para o endereço correto (v1)
         response = requests.post(
-            f"{GEMINI_URL}?key={GEMINI_API_KEY}",
-            json=payload,
+            URL_BASE, 
+            params={'key': GEMINI_API_KEY}, 
+            json=payload, 
             timeout=30
         )
         response.raise_for_status()
         result = response.json()
-        resposta = result["candidates"][0]["content"]["parts"][0]["text"]
-        return jsonify({"resposta": resposta})
+        
+        resposta_ia = result['candidates'][0]['content']['parts'][0]['text']
+        return jsonify({"resposta": resposta_ia})
+        
     except Exception as e:
         return jsonify({"resposta": f"Erro no núcleo Ágape: {str(e)}"}), 500
 
