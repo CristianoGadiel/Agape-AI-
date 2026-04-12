@@ -1,3 +1,4 @@
+
 import os
 import requests
 from flask import Flask, request, jsonify, render_template_string
@@ -6,10 +7,10 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
+# Chave e URL atualizada para evitar o erro 404
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent"
 
-# Carrega o seu painel visual
 with open('index.html', 'r', encoding='utf-8') as f:
     INDEX_HTML = f.read()
 
@@ -26,10 +27,11 @@ def chat():
         return jsonify({"resposta": "Diretriz vazia."}), 400
 
     payload = {
-        "contents": [{"parts": [{"text": f"Você é o ÁGAPE V36, uma IA de ética e segurança. Responda: {pergunta}"}]}]
+        "contents": [{"parts": [{"text": f"Você é o ÁGAPE V36, uma IA de ética e segurança com malha de 72.160 nós. Responda: {pergunta}"}]}]
     }
 
     try:
+        # A requisição agora aponta para o endereço correto (v1)
         response = requests.post(
             f"{GEMINI_URL}?key={GEMINI_API_KEY}",
             json=payload,
