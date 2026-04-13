@@ -1,7 +1,10 @@
-Flask
+fastapi
+uvicorn
 gunicorn
-requests
-flask-cors
+aiohttp
+pydantic
+numpy
+
 
 
 
