@@ -3,6 +3,7 @@ import requests
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 
+# Pega a chave que você salvou com sucesso na Vercel
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 app = FastAPI()
@@ -17,14 +18,14 @@ async def chat_endpoint(request: Request):
     pergunta = data.get("pergunta", "")
     
     if not GOOGLE_API_KEY:
-        return {"resposta": "Erro: Chave não configurada na Vercel."}
+        return {"resposta": "Erro: Chave não encontrada na Vercel."}
     
-    # URL atualizada com '-latest' para a versão estável v1
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key={GOOGLE_API_KEY}"
+    # Esta é a URL definitiva para faturamento e estabilidade
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
     
     payload = {
         "contents": [{
-            "parts": [{"text": f"Você é a Ágape V36. Responda de forma curta: {pergunta}"}]
+            "parts": [{"text": f"Você é a Ágape V36. Responda de forma direta: {pergunta}"}]
         }]
     }
     
@@ -32,15 +33,16 @@ async def chat_endpoint(request: Request):
         response = requests.post(url, json=payload)
         result = response.json()
         
+        # Se houver erro de cota ou chave, ele aparecerá aqui
         if 'error' in result:
-            return {"resposta": f"Google diz: {result['error']['message']}"}
+            return {"resposta": f"Aviso do Google: {result['error']['message']}"}
             
-        candidates = result.get('candidates', [])
-        if candidates:
-            texto = candidates[0].get('content', {}).get('parts', [{}])[0].get('text', 'Resposta vazia.')
+        # Extração segura da resposta
+        if 'candidates' in result and len(result['candidates']) > 0:
+            texto = result['candidates'][0]['content']['parts'][0]['text']
             return {"resposta": texto}
         else:
-            return {"resposta": "Resposta não gerada. Verifique o saldo."}
+            return {"resposta": "O modelo não gerou uma resposta. Verifique seu painel do Google AI Studio."}
             
     except Exception as e:
-        return {"resposta": f"Erro técnico: {str(e)}"}
+        return {"resposta": f"Erro de conexão: {str(e)}"}
