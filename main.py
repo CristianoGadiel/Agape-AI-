@@ -6,7 +6,7 @@ import os
 app = FastAPI()
 
 # Aqui o código busca a chave que você já configurou no sistema
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GOOGLE_API_KEY = os.getenv("AIzaSyBl9hrXjHRXuf7HFqe_nt3x87LR-yx6DWw")
 
 if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
