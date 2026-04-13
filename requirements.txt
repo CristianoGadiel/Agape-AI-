@@ -3,7 +3,7 @@ uvicorn
 gunicorn
 aiohttp
 numpy
-
+google-generativeai
 
 
 
