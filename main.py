@@ -160,21 +160,30 @@ async def index():
                 container.scrollTop = container.scrollHeight;
             }
         </script>
-    </body>
-    </html>
-    """
-
-@app.post("/chat")
-async def chat(req: ChatRequest):
+    
+    @app.post("/chat")
+async def chat(req: dict):
     try:
-        # Chama o núcleo para processar a IA
-        resposta = await core.generate_response(req.message)
-        return {"answer": resposta, "status": "success", "nodes": 72160}
+        # Captura a mensagem vinda do seu site
+        pergunta = req.get("pergunta") or req.get("message")
+        
+        # Conecta com a inteligência da Catedral Ágape
+        # Agora usando seu saldo de R$ 50 para respostas reais
+        resposta = await core.generate_response(pergunta)
+        
+        # Retorna com o nome "resposta" para o seu index.html entender
+        return {"resposta": resposta}
+        
     except Exception as e:
-        return {"answer": f"Dissonância na malha: {str(e)}", "status": "error"}
+        return {"resposta": f"Dissonância na malha: {str(e)}"}
 
 if __name__ == "__main__":
+    import uvicorn
+    import os
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
+    
+
 
 
