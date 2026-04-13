@@ -1,9 +1,10 @@
+
 import os
 import requests
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 
-# Pega a chave que você salvou com sucesso na Vercel
+# Pega a chave que está salva com sucesso na sua Vercel
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 app = FastAPI()
@@ -18,14 +19,15 @@ async def chat_endpoint(request: Request):
     pergunta = data.get("pergunta", "")
     
     if not GOOGLE_API_KEY:
-        return {"resposta": "Erro: Chave não encontrada na Vercel."}
+        return {"resposta": "Erro: Chave não configurada na Vercel."}
     
-    # Esta é a URL definitiva para faturamento e estabilidade
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
+    # URL DE PRODUÇÃO ESTÁVEL (v1)
+    # Usando o modelo 'gemini-pro', que é o padrão ouro de compatibilidade
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={GOOGLE_API_KEY}"
     
     payload = {
         "contents": [{
-            "parts": [{"text": f"Você é a Ágape V36. Responda de forma direta: {pergunta}"}]
+            "parts": [{"text": f"Você é a Ágape V36. Responda: {pergunta}"}]
         }]
     }
     
@@ -33,16 +35,17 @@ async def chat_endpoint(request: Request):
         response = requests.post(url, json=payload)
         result = response.json()
         
-        # Se houver erro de cota ou chave, ele aparecerá aqui
+        # Captura mensagens reais do Google sobre saldo ou chave
         if 'error' in result:
-            return {"resposta": f"Aviso do Google: {result['error']['message']}"}
+            return {"resposta": f"Google informa: {result['error']['message']}"}
             
-        # Extração segura da resposta
-        if 'candidates' in result and len(result['candidates']) > 0:
-            texto = result['candidates'][0]['content']['parts'][0]['text']
+        # Extração do texto
+        candidates = result.get('candidates', [])
+        if candidates:
+            texto = candidates[0].get('content', {}).get('parts', [{}])[0].get('text', 'Sem resposta.')
             return {"resposta": texto}
         else:
-            return {"resposta": "O modelo não gerou uma resposta. Verifique seu painel do Google AI Studio."}
+            return {"resposta": "Erro: O Google não gerou resposta. Verifique seu crédito no Cloud Console."}
             
     except Exception as e:
-        return {"resposta": f"Erro de conexão: {str(e)}"}
+        return {"resposta": f"Erro técnico: {str(e)}"}
