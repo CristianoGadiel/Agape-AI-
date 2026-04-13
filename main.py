@@ -1,12 +1,10 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse
-import google.generativeai as genai
 import os
 
-app = FastAPI()
+# CONFIGURAÇÃO DA CHAVE API - COLE SUA CHAVE ENTRE AS ASPAS ABAIXO
+GOOGLE_API_KEY = "AIzaSyBl9hrXjHRXuf7HFqe_nt3x87LR-yx6DWw"
 
-# Aqui o código busca a chave que você já configurou no sistema
-GOOGLE_API_KEY = os.getenv"AIzaSyBl9hrXjHRXuf7HFqe_nt3x87LR-yx6DWw"
+# O restante do código continua aqui embaixo...
+
 
 if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
