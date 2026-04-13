@@ -55,4 +55,13 @@ if __name__ == "__main__":
     
 
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+# Adicione isso logo abaixo de app = FastAPI()
+app.mount("/static", StaticFiles(directory="."), name="static")
+
+@app.get("/")
+async def read_index():
+    return FileResponse('index.html')
 
