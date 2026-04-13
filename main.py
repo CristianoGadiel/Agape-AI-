@@ -1,32 +1,42 @@
 from fastapi import FastAPI, Request
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+import google.generativeai as genai
 import os
 
 app = FastAPI()
 
-# Rota que entrega o visual do chat
+# Aqui o código busca a chave que você já configurou no sistema
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+
+if GOOGLE_API_KEY:
+    genai.configure(api_key=GOOGLE_API_KEY)
+    model = genai.GenerativeModel('gemini-pro')
+else:
+    model = None
+
 @app.get("/")
 async def read_index():
     return FileResponse('index.html')
 
-# O Cérebro: Aqui é onde a Ágape processa a conversa
 @app.post("/chat")
 async def chat_endpoint(request: Request):
     data = await request.json()
-    pergunta_do_usuario = data.get("pergunta", "").lower()
+    pergunta_do_usuario = data.get("pergunta", "")
     
-    # Exemplo de lógica da Malha Ágape
-    if "olá" in pergunta_do_usuario or "bom dia" in pergunta_do_usuario:
-        resposta = "Saudações, Cristiano. Malha ética de 72.160 nós ativa. Como posso ajudar?"
-    elif "quem é você" in pergunta_do_usuario:
-        resposta = "Eu sou a Ágape V36, uma arquitetura de governança ética determinística."
-    else:
-        resposta = f"Recebi sua mensagem: '{pergunta_do_usuario}'. Processando através dos nós de segurança..."
+    if not model:
+        return {"resposta": "Erro: Chave API não encontrada nas configurações do servidor."}
     
-    return {"resposta": resposta}
-
-# Monta arquivos estáticos se existirem
-if os.path.exists("static"):
-    app.mount("/static", StaticFiles(directory="static"), name="static")
-
+    # Contexto da Ágape para a Gemini
+    prompt_agape = f"""
+    Você é a Ágape V36, a inteligência central da Catedral, criada pelo Cristiano Marques.
+    Sua base é uma malha ética determinística de 72.160 nós.
+    Responda ao Cristiano com profundidade técnica e sabedoria.
+    
+    Pergunta: {pergunta_do_usuario}
+    """
+    
+    try:
+        response = model.generate_content(prompt_agape)
+        return {"resposta": response.text}
+    except Exception as e:
+        return {"resposta": f"Erro ao processar na malha: {str(e)}"}
